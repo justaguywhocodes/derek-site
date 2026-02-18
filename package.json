@@ -1,0 +1,25 @@
+{
+  "name": "derek-martin-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Derek Martin — Red Team Operator & Security Engineer",
+  "scripts": {
+    "develop": "gatsby develop",
+    "build": "gatsby build",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean"
+  },
+  "dependencies": {
+    "gatsby": "^5.16.1",
+    "gatsby-plugin-image": "^3.16.0",
+    "gatsby-plugin-manifest": "^5.16.0",
+    "gatsby-plugin-sharp": "^5.16.0",
+    "gatsby-remark-prismjs": "^7.16.0",
+    "gatsby-source-filesystem": "^5.16.0",
+    "gatsby-transformer-remark": "^6.16.0",
+    "gatsby-transformer-sharp": "^5.16.0",
+    "prismjs": "^1.29.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  }
+}
