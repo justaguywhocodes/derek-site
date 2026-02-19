@@ -47,18 +47,31 @@ export const query = graphql`
   query ($slug: String!) {
     markdownRemark(frontmatter: { slug: { eq: $slug } }) {
       html
+      excerpt(pruneLength: 160)
       timeToRead
       frontmatter {
         title
+        slug
         date(formatString: "MMMM D, YYYY")
+        rawDate: date
         tags
       }
     }
   }
 `
 
-export const Head = ({ data }) => (
-  <Seo title={data.markdownRemark.frontmatter.title} />
-)
+export const Head = ({ data }) => {
+  const { frontmatter, excerpt } = data.markdownRemark
+  return (
+    <Seo
+      title={frontmatter.title}
+      description={excerpt}
+      pathname={`/blog/${frontmatter.slug}`}
+      date={frontmatter.rawDate}
+      tags={frontmatter.tags}
+      isArticle={true}
+    />
+  )
+}
 
 export default BlogPost
