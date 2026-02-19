@@ -666,6 +666,60 @@ img { max-width: 100%; display: block; }
 .post-content a { border-bottom: 1px solid currentColor; }
 
 /* ============================================
+   PGP KEY PAGE
+   ============================================ */
+.pgp-fingerprint {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  padding: 0.3em 0.6em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.pgp-key-wrapper {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.pgp-copy-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  z-index: 2;
+}
+
+.pgp-copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.pgp-key-block {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
    FOOTER
    ============================================ */
 footer {
