@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { Link } from "gatsby"
+import Search from "./Search"
 
 const Layout = ({ children }) => {
   const [theme, setTheme] = useState("light")
@@ -51,6 +52,7 @@ const Layout = ({ children }) => {
             <li><Link to="/about">About</Link></li>
             <li><Link to="/contact">Contact</Link></li>
             <li><a href="/Derek_Martin_Resume.pdf" target="_blank" rel="noopener noreferrer">Resume</a></li>
+            <li><Search /></li>
             <li>
               <button
                 className="theme-toggle"
