@@ -15,12 +15,6 @@ const IconDocument = ({ className }) => (
   </svg>
 )
 
-const IconFolder = ({ className }) => (
-  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-  </svg>
-)
-
 const Search = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState("")
@@ -138,9 +132,6 @@ const Search = () => {
 
   // Get the visible list of items (recent when no query, results when searching)
   const displayItems = query.trim() ? results : posts.slice(0, 3)
-  const hasProjectTag = (post) => (post.tags || []).some(t =>
-    ["project", "tool", "tooling", "framework"].includes(t.toLowerCase())
-  )
 
   const goToResult = (slug) => {
     closeSearch()
@@ -222,11 +213,7 @@ const Search = () => {
                           onClick={() => goToResult(post.slug)}
                           onMouseEnter={() => setFocusedIndex(i)}
                         >
-                          {hasProjectTag(post) ? (
-                            <IconFolder className="cmd-item-icon" />
-                          ) : (
-                            <IconDocument className="cmd-item-icon" />
-                          )}
+                          <IconDocument className="cmd-item-icon" />
                           <span className="cmd-item-title">{post.title}</span>
                           <span className="cmd-item-action">Jump to&hellip;</span>
                         </li>
@@ -239,7 +226,7 @@ const Search = () => {
               {/* Empty state */}
               {query.trim() && results.length === 0 && (
                 <div className="cmd-empty">
-                  <IconFolder className="cmd-empty-icon" />
+                  <IconDocument className="cmd-empty-icon" />
                   <p className="cmd-empty-text">
                     No results found for &ldquo;{query}&rdquo;. Try a different search.
                   </p>
