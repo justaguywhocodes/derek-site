@@ -7,6 +7,24 @@ module.exports = {
   },
   plugins: [
     {
+      resolve: `gatsby-plugin-google-tagmanager`,
+      options: {
+        id: `GTM-WHK2Z5T9`,
+        includeInDevelopment: false,
+        defaultDataLayer: { platform: `gatsby` },
+      },
+    },
+    {
+      resolve: `gatsby-plugin-google-gtag`,
+      options: {
+        trackingIds: [`G-J998F3JG0L`],
+        pluginConfig: {
+          head: true,
+          respectDNT: true,
+        },
+      },
+    },
+    {
       resolve: `gatsby-source-filesystem`,
       options: {
         name: `posts`,
