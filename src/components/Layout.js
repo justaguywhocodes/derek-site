@@ -50,6 +50,7 @@ const Layout = ({ children }) => {
             <li><Link to="/blog">Blog</Link></li>
             <li><Link to="/about">About</Link></li>
             <li><Link to="/contact">Contact</Link></li>
+            <li><a href="/Derek_Martin_Resume.pdf" target="_blank" rel="noopener noreferrer">Resume</a></li>
             <li>
               <button
                 className="theme-toggle"
