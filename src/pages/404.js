@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Link } from "gatsby"
 import Seo from "../components/Seo"
+import "../styles/global.css"
 
 const SECURITY_MESSAGES = [
   "ACCESS DENIED — INSUFFICIENT CLEARANCE",
