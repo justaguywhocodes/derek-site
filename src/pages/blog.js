@@ -52,6 +52,12 @@ export const query = graphql`
   }
 `
 
-export const Head = () => <Seo title="Blog" />
+export const Head = () => (
+  <Seo
+    title="Blog"
+    description="Articles on offensive security, red teaming, tooling, and automation by Derek Martin."
+    pathname="/blog"
+  />
+)
 
 export default BlogPage

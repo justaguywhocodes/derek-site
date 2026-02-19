@@ -91,6 +91,12 @@ const AboutPage = () => (
   </Layout>
 )
 
-export const Head = () => <Seo title="About" />
+export const Head = () => (
+  <Seo
+    title="About"
+    description="About Derek Martin — red team operator and offensive security engineer with OSCP+, CISSP, and CPTS certifications."
+    pathname="/about"
+  />
+)
 
 export default AboutPage
