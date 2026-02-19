@@ -176,9 +176,11 @@ const Search = () => {
       {isOpen && (
         <div className="cmd-backdrop" onClick={closeSearch} role="presentation">
           <div className="cmd-container">
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
             <div
               className="cmd-panel"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-label="Search"
@@ -204,13 +206,16 @@ const Search = () => {
                     {!query.trim() && (
                       <h2 className="cmd-group-title">Recent searches</h2>
                     )}
-                    <ul className="cmd-list">
+                    <ul className="cmd-list" role="listbox">
                       {displayItems.map((post, i) => (
                         <li
                           key={post.slug}
                           data-search-item
+                          role="option"
+                          aria-selected={focusedIndex === i}
                           className={`cmd-item${focusedIndex === i ? " cmd-item-focused" : ""}`}
                           onClick={() => goToResult(post.slug)}
+                          onKeyDown={(e) => { if (e.key === "Enter") goToResult(post.slug) }}
                           onMouseEnter={() => setFocusedIndex(i)}
                         >
                           <IconDocument className="cmd-item-icon" />
