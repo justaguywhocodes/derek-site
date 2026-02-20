@@ -1,0 +1,128 @@
+[
+  {
+    "name": "ShellStrike",
+    "description": "Modular C2 framework with DNS, HTTPS, and SMB channels for red team operations. Includes beacon generation, task queuing, and encrypted comms.",
+    "github": "https://github.com/justaguywhocodes/shellstrike",
+    "category": "Red Teaming",
+    "tags": ["C2", "Python", "DNS"]
+  },
+  {
+    "name": "ReconPilot",
+    "description": "LLM-powered reconnaissance automation tool that chains OSINT sources, enriches targets, and generates actionable reports.",
+    "github": "https://github.com/justaguywhocodes/reconpilot",
+    "category": "AI",
+    "tags": ["LLM", "OSINT", "Python"]
+  },
+  {
+    "name": "EDR-Evade",
+    "description": "Toolkit for testing EDR bypass techniques including unhooking, direct syscalls, and AMSI patching in controlled lab environments.",
+    "github": "https://github.com/justaguywhocodes/edr-evade",
+    "category": "Red Teaming",
+    "tags": ["C#", "Evasion", "Windows"]
+  },
+  {
+    "name": "PhishForge",
+    "description": "Automated phishing infrastructure deployer. Spins up GoPhish, configures SMTP, provisions SSL certs, and manages campaign tracking.",
+    "github": "https://github.com/justaguywhocodes/phishforge",
+    "category": "Penetration Testing",
+    "tags": ["Go", "Phishing", "Terraform"]
+  },
+  {
+    "name": "VulnPipeline",
+    "description": "CI/CD security scanner that integrates Semgrep, Nuclei, and Trivy into GitHub Actions with Slack/Jira alerting.",
+    "github": "https://github.com/justaguywhocodes/vulnpipeline",
+    "category": "Automation",
+    "tags": ["GitHub Actions", "YAML", "DevSecOps"]
+  },
+  {
+    "name": "TokenHunter",
+    "description": "Credential and secret scanner for cloud environments. Searches S3, Azure Blob, and GCS for exposed API keys, tokens, and PII.",
+    "github": "https://github.com/justaguywhocodes/tokenhunter",
+    "category": "Penetration Testing",
+    "tags": ["Python", "Cloud", "AWS"]
+  },
+  {
+    "name": "MSBuild-Loader",
+    "description": "Defense evasion research tool demonstrating MSBuild inline task abuse for payload execution and living-off-the-land techniques.",
+    "github": "https://github.com/justaguywhocodes/msbuild-loader",
+    "category": "Red Teaming",
+    "tags": ["C#", "LOLBAS", ".NET"]
+  },
+  {
+    "name": "GPT-Recon",
+    "description": "ChatGPT-powered subdomain enumeration and vulnerability correlation engine. Maps attack surface and prioritizes findings.",
+    "github": "https://github.com/justaguywhocodes/gpt-recon",
+    "category": "AI",
+    "tags": ["OpenAI", "Python", "Recon"]
+  },
+  {
+    "name": "InfraBot",
+    "description": "Terraform + Ansible automation for spinning up disposable red team infrastructure across AWS, Azure, and DigitalOcean.",
+    "github": "https://github.com/justaguywhocodes/infrabot",
+    "category": "Automation",
+    "tags": ["Terraform", "Ansible", "Cloud"]
+  },
+  {
+    "name": "DNSTunnel",
+    "description": "Proof-of-concept DNS tunneling implant for data exfiltration research. Supports TXT, CNAME, and AAAA record encoding.",
+    "github": "https://github.com/justaguywhocodes/dnstunnel",
+    "category": "Red Teaming",
+    "tags": ["Go", "DNS", "Exfiltration"]
+  },
+  {
+    "name": "PurpleOps",
+    "description": "MITRE ATT&CK-aligned purple team exercise framework. Auto-generates detection rules from simulated attack telemetry.",
+    "github": "https://github.com/justaguywhocodes/purpleops",
+    "category": "Automation",
+    "tags": ["Python", "MITRE", "Detection"]
+  },
+  {
+    "name": "WebReaper",
+    "description": "Fast, multi-threaded web application vulnerability scanner with smart crawling, form fuzzing, and custom payload support.",
+    "github": "https://github.com/justaguywhocodes/webreaper",
+    "category": "Penetration Testing",
+    "tags": ["Go", "Web", "Fuzzing"]
+  },
+  {
+    "name": "AI-Vuln-Triage",
+    "description": "Machine learning model for automated vulnerability severity scoring. Trained on NVD data with contextual asset enrichment.",
+    "github": "https://github.com/justaguywhocodes/ai-vuln-triage",
+    "category": "AI",
+    "tags": ["ML", "Python", "NVD"]
+  },
+  {
+    "name": "CloudEnum",
+    "description": "Multi-cloud enumeration tool for discovering misconfigured storage buckets, open databases, and exposed services.",
+    "github": "https://github.com/justaguywhocodes/cloudenum",
+    "category": "Penetration Testing",
+    "tags": ["Python", "AWS", "Azure"]
+  },
+  {
+    "name": "LogForwarder",
+    "description": "Lightweight log aggregation agent that ships Windows Event Logs and Sysmon data to ELK/Splunk with minimal footprint.",
+    "github": "https://github.com/justaguywhocodes/logforwarder",
+    "category": "Automation",
+    "tags": ["Rust", "Sysmon", "SIEM"]
+  },
+  {
+    "name": "CertPhisher",
+    "description": "Certificate transparency monitor that alerts on lookalike domain registrations targeting specified brands and keywords.",
+    "github": "https://github.com/justaguywhocodes/certphisher",
+    "category": "Automation",
+    "tags": ["Go", "CT Logs", "Monitoring"]
+  },
+  {
+    "name": "LLM-Pentest-Agent",
+    "description": "Autonomous penetration testing agent powered by LLMs. Chains tools like Nmap, ffuf, and sqlmap based on contextual reasoning.",
+    "github": "https://github.com/justaguywhocodes/llm-pentest-agent",
+    "category": "AI",
+    "tags": ["LangChain", "Python", "Agents"]
+  },
+  {
+    "name": "PrivEscCheck",
+    "description": "Windows and Linux privilege escalation enumeration script with automated exploit suggestion and MITRE technique mapping.",
+    "github": "https://github.com/justaguywhocodes/privesccheck",
+    "category": "Penetration Testing",
+    "tags": ["PowerShell", "Bash", "PrivEsc"]
+  }
+]
