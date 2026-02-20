@@ -26,7 +26,7 @@ const Seo = ({ title, description, pathname, date, tags, isArticle, image, child
     title: title ? `${title} | ${defaultTitle}` : defaultTitle,
     description: description || defaultDesc,
     url: `${siteUrl}${pathname || ``}`,
-    image: image || `${siteUrl}/icons/icon-512x512.png`,
+    image: image || `${siteUrl}/og-image.jpg`,
     author,
   }
 
