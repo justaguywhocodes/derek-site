@@ -6,7 +6,7 @@ exports.createPages = async ({ graphql, actions }) => {
 
   const result = await graphql(`
     {
-      allMarkdownRemark(sort: { frontmatter: { date: DESC } }) {
+      allMdx(sort: { frontmatter: { date: DESC } }) {
         edges {
           node {
             excerpt(pruneLength: 200)
@@ -15,6 +15,9 @@ exports.createPages = async ({ graphql, actions }) => {
               slug
               date(formatString: "MMM D, YYYY")
               tags
+            }
+            internal {
+              contentFilePath
             }
           }
         }
@@ -26,13 +29,14 @@ exports.createPages = async ({ graphql, actions }) => {
     throw result.errors
   }
 
-  const posts = result.data.allMarkdownRemark.edges
+  const posts = result.data.allMdx.edges
 
   // Create individual blog post pages
+  const postTemplate = path.resolve(`./src/templates/blog-post.js`)
   posts.forEach(({ node }) => {
     createPage({
       path: `/blog/${node.frontmatter.slug}`,
-      component: path.resolve(`./src/templates/blog-post.js`),
+      component: `${postTemplate}?__contentFilePath=${node.internal.contentFilePath}`,
       context: {
         slug: node.frontmatter.slug,
       },

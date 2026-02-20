@@ -3,9 +3,11 @@ import { graphql, Link } from "gatsby"
 import Layout from "../components/Layout"
 import Seo from "../components/Seo"
 
-const BlogPost = ({ data }) => {
-  const post = data.markdownRemark
+const BlogPost = ({ data, children }) => {
+  const post = data.mdx
   const { title, date, tags } = post.frontmatter
+  const wordCount = post.body ? post.body.split(/\s+/).length : 0
+  const readTime = Math.max(1, Math.ceil(wordCount / 250))
 
   return (
     <Layout>
@@ -22,14 +24,13 @@ const BlogPost = ({ data }) => {
         <div className="post-meta">
           <span>{date}</span>
           <span>&bull;</span>
-          <span>{post.timeToRead} min read</span>
+          <span>{readTime} min read</span>
         </div>
       </div>
 
-      <div
-        className="post-content"
-        dangerouslySetInnerHTML={{ __html: post.html }}
-      />
+      <div className="post-content">
+        {children}
+      </div>
 
       <div
         className="post-content"
@@ -45,10 +46,9 @@ const BlogPost = ({ data }) => {
 
 export const query = graphql`
   query ($slug: String!) {
-    markdownRemark(frontmatter: { slug: { eq: $slug } }) {
-      html
+    mdx(frontmatter: { slug: { eq: $slug } }) {
+      body
       excerpt(pruneLength: 160)
-      timeToRead
       frontmatter {
         title
         slug
@@ -61,7 +61,7 @@ export const query = graphql`
 `
 
 export const Head = ({ data }) => {
-  const { frontmatter, excerpt } = data.markdownRemark
+  const { frontmatter, excerpt } = data.mdx
   return (
     <Seo
       title={frontmatter.title}

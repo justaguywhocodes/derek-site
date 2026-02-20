@@ -5,7 +5,7 @@ import Seo from "../components/Seo"
 import BlogCard from "../components/BlogCard"
 
 const BlogList = ({ data, pageContext }) => {
-  const posts = data.allMarkdownRemark.edges
+  const posts = data.allMdx.edges
   const { currentPage, numPages } = pageContext
 
   const isFirst = currentPage === 1
@@ -74,7 +74,7 @@ const BlogList = ({ data, pageContext }) => {
 
 export const query = graphql`
   query ($skip: Int!, $limit: Int!) {
-    allMarkdownRemark(
+    allMdx(
       sort: { frontmatter: { date: DESC } }
       limit: $limit
       skip: $skip
