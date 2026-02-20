@@ -113,14 +113,61 @@ img { max-width: 100%; display: block; }
 }
 
 .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.nav-logo:hover { color: var(--text); }
+
+.nav-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  transition: border-color var(--transition);
+}
+.nav-logo:hover .nav-logo-img {
+  border-color: #00ff41;
+}
+
+.nav-logo-text {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 1.25rem;
   color: var(--text);
   letter-spacing: -0.02em;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+  position: relative;
 }
-.nav-logo span { color: var(--accent); }
-.nav-logo:hover { color: var(--text); }
+.nav-logo-text span {
+  color: var(--accent);
+  transition: color 0.2s ease;
+}
+
+/* Terminal hover effect */
+.nav-logo:hover .nav-logo-text {
+  font-family: var(--font-mono);
+  color: #00ff41;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+  letter-spacing: 0;
+}
+.nav-logo:hover .nav-logo-text span {
+  color: #00ff41;
+}
+.nav-logo-text::after {
+  content: "";
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.nav-logo:hover .nav-logo-text::after {
+  content: "_";
+  opacity: 1;
+  animation: blink 1s step-end infinite;
+  color: #00ff41;
+  margin-left: 1px;
+}
 
 .nav-links {
   display: flex;
