@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { Link } from "gatsby"
 import Search from "./Search"
+import profileImg from "../images/profile.jpg"
 
 const Layout = ({ children }) => {
   const [theme, setTheme] = useState("light")
@@ -37,7 +38,10 @@ const Layout = ({ children }) => {
       <nav className="nav">
         <div className="nav-inner">
           <Link to="/" className="nav-logo">
-            derek<span>.</span>
+            <img src={profileImg} alt="" className="nav-logo-img" />
+            <span className="nav-logo-text">
+              derek <span>martin</span>
+            </span>
           </Link>
           <button
             className="nav-toggle"
