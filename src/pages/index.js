@@ -143,6 +143,6 @@ export const query = graphql`
   }
 `
 
-export const Head = () => <Seo />
+export const Head = () => <Seo pathname="/" />
 
 export default IndexPage

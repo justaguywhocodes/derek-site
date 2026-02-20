@@ -196,6 +196,6 @@ const NotFoundPage = () => {
   )
 }
 
-export const Head = () => <Seo title="404: Access Denied" />
+export const Head = () => <Seo title="404: Access Denied" pathname="/404" />
 
 export default NotFoundPage

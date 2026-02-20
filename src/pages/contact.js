@@ -140,6 +140,12 @@ const ContactPage = () => {
   )
 }
 
-export const Head = () => <Seo title="Contact" />
+export const Head = () => (
+  <Seo
+    title="Contact"
+    description="Get in touch with Derek Martin for red teaming, offensive security, or collaboration."
+    pathname="/contact"
+  />
+)
 
 export default ContactPage

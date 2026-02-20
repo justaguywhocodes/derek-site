@@ -714,6 +714,65 @@ img { max-width: 100%; display: block; }
   font-size: 0.82rem;
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-link {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
+}
+.pagination-link:hover {
+  background: var(--accent-subtle);
+}
+.pagination-link.disabled {
+  color: var(--text-muted);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pagination-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
+}
+.pagination-number:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.pagination-number.active {
+  background: var(--accent);
+  color: #fff;
+  pointer-events: none;
+}
+
 /* ============================================
    ABOUT SECTION
    ============================================ */
@@ -1266,6 +1325,27 @@ footer {
 }
 .footer-links a { color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
 .footer-links a:hover { color: var(--accent); }
+
+.footer-socials {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.footer-socials a {
+  color: var(--text-muted);
+  transition: color var(--transition), transform var(--transition);
+}
+.footer-socials a:hover {
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+.footer-socials svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  display: block;
+}
 
 .footer-copy {
   font-size: 0.78rem;

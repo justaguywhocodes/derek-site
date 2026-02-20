@@ -105,6 +105,12 @@ const PgpPage = () => {
   )
 }
 
-export const Head = () => <Seo title="PGP Public Key" />
+export const Head = () => (
+  <Seo
+    title="PGP Public Key"
+    description="Derek Martin's PGP public key for encrypted communication."
+    pathname="/pgp"
+  />
+)
 
 export default PgpPage
