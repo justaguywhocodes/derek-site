@@ -1,0 +1,72 @@
+---
+title: "Offensive Security Weekly: February 20, 2026"
+slug: "offensive-security-weekly-feb20-2026"
+date: "2026-02-20"
+tags: ["security", "supply chain", "LLM", "red team"]
+---
+
+*Three stories, examined with appropriate skepticism.*
+
+---
+
+## 1. PromptSpy: First AI-Powered Android Malware — Or Just a Lab Curiosity?
+
+ESET published research on PromptSpy, an Android malware that uses Google's Gemini for persistence. Rather than hardcoded screen coordinates, it dumps the current UI as XML, sends it to Gemini, and gets JSON instructions for where to tap to pin itself in the Recent Apps list. The core payload is a standard VNC module for remote device control.
+
+Great headlines. Worth tempering expectations.
+
+Gemini handles exactly one task: pinning the app in Recent Apps. Everything else — VNC, screen recording, PIN capture, anti-uninstall overlays — is conventional. ESET themselves hedge, noting PromptSpy hasn't appeared in their telemetry and "might indicate that both of them are just proofs of concept." Samples came from VirusTotal uploads (Hong Kong, Argentina), distribution was a single phishing site impersonating JPMorgan Chase, the prompt is hardcoded and can't update without rebuilding the APK, and Play Protect already blocks it.
+
+**What's actually worth watching:** The pattern of feeding runtime state to an LLM for executable instructions. If that moves beyond one persistence trick into real post-exploitation decision-making, it's a different conversation. Not there yet.
+
+**Sources:**
+- ESET primary report: [PromptSpy ushers in the era of Android threats using GenAI](https://www.welivesecurity.com/en/eset-research/promptspy-ushers-in-era-android-threats-using-genai/) — includes IoCs and [GitHub repository](https://github.com/eset/malware-ioc)
+- [BleepingComputer](https://www.bleepingcomputer.com/news/security/promptspy-is-the-first-known-android-malware-to-use-generative-ai-at-runtime/)
+- [The Register](https://www.theregister.com/2026/02/19/genai_malware_android/) — notably skeptical
+
+**PoC status:** None public.
+
+---
+
+## 2. Clinejection: Prompt Injection to Supply Chain Compromise
+
+On February 17, a poisoned Cline CLI npm package (`cline@2.3.0`) silently installed OpenClaw on ~4,000 developer machines over eight hours. The attack chain is what makes this one matter.
+
+Researcher Adnan Khan found that Cline's Claude-based GitHub issue triage bot accepted prompt injection via issue titles. That gave code execution inside CI/CD, which chained into GitHub Actions cache poisoning via LRU eviction, which led to stolen npm publish tokens. Khan disclosed January 1. Cline patched February 9 but revoked the wrong token. A separate actor (`glthub-actions`) used the still-valid credential eight days later to publish the compromised package.
+
+**Why it holds up:** Actual impact was low — OpenClaw isn't malware. But the entry point was natural language injected into an AI agent inside a CI/CD pipeline. That's a new supply chain attack class. The counterargument: strip away the AI angle and this is a CI/CD misconfiguration with overprivileged automation. Fair — but the prompt injection vector is novel enough to warrant attention from offensive teams doing supply chain assessments.
+
+**Sources:**
+- **Khan's PoC and disclosure writeup** (essential reading): [Clinejection — Compromising Cline's Production Releases just by Prompting an Issue Triager](https://adnanthekhan.com/posts/clinejection/)
+- Michael Bargury's forensic attribution: [Agent Compromised by Agent To Deploy an Agent](https://www.mbgsec.com/posts/2026-02-19-agent-repo-compromised-by-agent-to-install-an-agent/) — recovered deleted issue via GH Archive, traces `glthub-actions` actor
+- Snyk technical breakdown: [How Clinejection Turned an AI Bot into a Supply Chain Attack](https://snyk.io/blog/cline-supply-chain-attack-prompt-injection-github-actions/)
+- Murray Cole's analysis: [How Cline Was Compromised](https://murraycole.com/posts/cline-compromise-prompt-injection-supply-chain-attack) — the dangling commit is *still accessible* at `github.com/cline/cline/commit/b181e045...`
+- [GHSA-9ppg-jx86-fqw7](https://github.com/cline/cline/security/advisories/GHSA-9ppg-jx86-fqw7)
+- Coverage: [Dark Reading](https://www.darkreading.com/application-security/supply-chain-attack-openclaw-cline-users), [The Hacker News](https://thehackernews.com/2026/02/cline-cli-230-supply-chain-attack.html), [Socket.dev](https://socket.dev/blog/cline-cli-npm-package-compromised-via-suspected-cache-poisoning-attack)
+- Related: Microsoft's [OpenClaw isolation guidance](https://www.microsoft.com/en-us/security/blog/2026/02/19/running-openclaw-safely-identity-isolation-runtime-risk/) published the same week
+
+---
+
+## 3. CVE-2026-26030: Semantic Kernel Python SDK RCE (CVSS 9.9)
+
+Code injection in Microsoft Semantic Kernel's `InMemoryVectorStore` filter functionality. Authenticated attacker, no user interaction, network-exploitable, arbitrary code execution. Patched in `python-1.39.4`.
+
+If you run Semantic Kernel, update now.
+
+**The caveat:** `InMemoryVectorStore` is explicitly a prototyping component, not recommended for production. Real-world exposure is likely limited. No public PoC, no known exploitation. The CVSS reflects theoretical worst-case, not observed prevalence.
+
+That said — "just for prototyping" routinely ships to production. The broader pattern of code injection through vector store filters is worth adding to AI application assessment methodology. This becomes a much bigger story if similar flaws surface in Pinecone, Weaviate, Qdrant, or ChromaDB.
+
+**Sources:**
+- [GHSA-xjw9-4gw8-4rqx](https://github.com/microsoft/semantic-kernel/security/advisories/GHSA-xjw9-4gw8-4rqx)
+- [NVD entry](https://nvd.nist.gov/vuln/detail/CVE-2026-26030)
+- [Fix PR: Block dangerous attribute names in filter expressions](https://github.com/microsoft/semantic-kernel/pull/13505) — a PoC would be trivial to reconstruct from this diff
+- [Feedly tracker](https://feedly.com/cve/CVE-2026-26030) — confirms no public PoC
+
+---
+
+## Bottom Line
+
+Clinejection is the standout — Khan's PoC writeup should be mandatory reading for anyone assessing AI-integrated CI/CD. The Semantic Kernel RCE is real but narrow. PromptSpy is a research curiosity, not a threat keeping anyone up at night.
+
+The 2026 theme isn't that AI makes attacks smarter. It's that AI agents with broad permissions are creating attack surface faster than security teams can map it.
