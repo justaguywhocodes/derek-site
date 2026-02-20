@@ -39,9 +39,10 @@ module.exports = {
       },
     },
     {
-      resolve: `gatsby-transformer-remark`,
+      resolve: `gatsby-plugin-mdx`,
       options: {
-        plugins: [
+        extensions: [`.mdx`, `.md`],
+        gatsbyRemarkPlugins: [
           {
             resolve: `gatsby-remark-prismjs`,
             options: {
@@ -95,23 +96,21 @@ module.exports = {
         `,
         feeds: [
           {
-            serialize: ({ query: { site, allMarkdownRemark } }) => {
-              return allMarkdownRemark.nodes.map((node) => {
+            serialize: ({ query: { site, allMdx } }) => {
+              return allMdx.nodes.map((node) => {
                 return Object.assign({}, node.frontmatter, {
                   description: node.excerpt,
                   date: node.frontmatter.date,
                   url: site.siteMetadata.siteUrl + `/blog/` + node.frontmatter.slug,
                   guid: site.siteMetadata.siteUrl + `/blog/` + node.frontmatter.slug,
-                  custom_elements: [{ "content:encoded": node.html }],
                 })
               })
             },
             query: `
               {
-                allMarkdownRemark(sort: {frontmatter: {date: DESC}}) {
+                allMdx(sort: {frontmatter: {date: DESC}}) {
                   nodes {
                     excerpt
-                    html
                     frontmatter {
                       title
                       date

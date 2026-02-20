@@ -5,7 +5,7 @@ import Seo from "../components/Seo"
 import BlogCard from "../components/BlogCard"
 
 const IndexPage = ({ data }) => {
-  const posts = data.allMarkdownRemark.edges
+  const posts = data.allMdx.edges
 
   return (
     <Layout>
@@ -124,7 +124,7 @@ const IndexPage = ({ data }) => {
 
 export const query = graphql`
   query {
-    allMarkdownRemark(
+    allMdx(
       sort: { frontmatter: { date: DESC } }
       limit: 6
     ) {
