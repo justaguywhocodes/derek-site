@@ -53,6 +53,7 @@ const Layout = ({ children }) => {
           <ul className={`nav-links${menuOpen ? " open" : ""}`}>
             <li><Link to="/">Home</Link></li>
             <li><Link to="/blog">Blog</Link></li>
+            <li><Link to="/projects">Projects</Link></li>
             <li><Link to="/about">About</Link></li>
             <li><Link to="/contact">Contact</Link></li>
             <li><a href="/Derek_Martin_Resume.pdf" target="_blank" rel="noopener noreferrer">Resume</a></li>
@@ -78,6 +79,7 @@ const Layout = ({ children }) => {
           <div className="footer-links">
             <Link to="/">Home</Link>
             <Link to="/blog">Blog</Link>
+            <Link to="/projects">Projects</Link>
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
           </div>
