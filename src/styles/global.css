@@ -1014,6 +1014,37 @@ img { max-width: 100%; display: block; }
 
 .post-content a { border-bottom: 1px solid currentColor; }
 
+.post-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.post-content th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border-bottom: 2px solid var(--border-hover);
+  background: var(--bg-alt);
+}
+.post-content td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.post-content tr:last-child td {
+  border-bottom: none;
+}
+.post-content tbody tr:hover {
+  background: var(--accent-subtle);
+}
+
 /* ============================================
    PGP KEY PAGE
    ============================================ */
