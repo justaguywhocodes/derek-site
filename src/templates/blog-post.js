@@ -18,7 +18,12 @@ const BlogPost = ({ data, children }) => {
   const [progress, setProgress] = useState(0)
   const [headings, setHeadings] = useState([])
   const [activeId, setActiveId] = useState("")
-  const [tocOpen, setTocOpen] = useState(true)
+  const [tocOpen, setTocOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth > 768
+    }
+    return true
+  })
   const contentRef = useRef(null)
 
   // Reading progress bar
@@ -118,34 +123,34 @@ const BlogPost = ({ data, children }) => {
       {/* Table of Contents */}
       {headings.length > 0 && (
         <nav className="toc" aria-label="Table of contents">
-          <button
-            className="toc-toggle"
-            onClick={() => setTocOpen(!tocOpen)}
-            aria-expanded={tocOpen}
-          >
-            <span className="toc-toggle-label">
-              <span className="toc-toggle-icon">&#9776;</span>
-              Table of Contents
-            </span>
-            <span className={`toc-chevron${tocOpen ? " toc-chevron-open" : ""}`}>
-              &#8250;
-            </span>
-          </button>
-          {tocOpen && (
-            <ul className="toc-list">
-              {headings.map(({ id, text, level }) => (
-                <li key={id} className={`toc-item${level === 3 ? " toc-item-nested" : ""}`}>
-                  <a
-                    href={`#${id}`}
-                    className={`toc-link${activeId === id ? " toc-link-active" : ""}`}
-                    onClick={(e) => scrollToHeading(e, id)}
-                  >
-                    {text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="toc-card">
+            <button
+              className="toc-toggle"
+              onClick={() => setTocOpen(!tocOpen)}
+              aria-expanded={tocOpen}
+            >
+              <span className="toc-toggle-label">
+                <svg className="toc-toggle-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="10" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+                Table of Contents
+              </span>
+              <svg className={`toc-chevron${tocOpen ? " toc-chevron-open" : ""}`} width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 4 10 8 6 12"/></svg>
+            </button>
+            {tocOpen && (
+              <ul className="toc-list">
+                {headings.map(({ id, text, level }) => (
+                  <li key={id} className={`toc-item${level === 3 ? " toc-item-nested" : ""}`}>
+                    <a
+                      href={`#${id}`}
+                      className={`toc-link${activeId === id ? " toc-link-active" : ""}`}
+                      onClick={(e) => scrollToHeading(e, id)}
+                    >
+                      {text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </nav>
       )}
 
