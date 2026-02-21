@@ -1057,6 +1057,10 @@ img { max-width: 100%; display: block; }
   z-index: 99;
   transition: width 0.1s linear;
   pointer-events: none;
+  /* iOS Safari: prevent visual jump when address bar animates */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: width;
 }
 
 /* ============================================
@@ -1068,25 +1072,31 @@ img { max-width: 100%; display: block; }
   padding: 0 2rem;
 }
 
+.toc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.toc-card:hover {
+  border-color: var(--border-hover);
+}
+
 .toc-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: 0.85rem 1.1rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: transparent;
+  border: none;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text);
   transition: all var(--transition);
-}
-.toc-toggle:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow);
 }
 
 .toc-toggle-label {
@@ -1096,17 +1106,15 @@ img { max-width: 100%; display: block; }
 }
 
 .toc-toggle-icon {
-  font-size: 0.9rem;
   color: var(--accent);
-  line-height: 1;
+  flex-shrink: 0;
 }
 
 .toc-chevron {
-  font-size: 1.1rem;
   color: var(--text-muted);
   transition: transform var(--transition);
   transform: rotate(0deg);
-  line-height: 1;
+  flex-shrink: 0;
 }
 .toc-chevron-open {
   transform: rotate(90deg);
@@ -1116,10 +1124,7 @@ img { max-width: 100%; display: block; }
   list-style: none;
   margin: 0;
   padding: 0.5rem 0 0.75rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: 1px solid var(--border);
 }
 
 .toc-item {
@@ -1154,19 +1159,32 @@ img { max-width: 100%; display: block; }
   background: var(--accent-subtle);
 }
 
-/* When TOC is open, adjust the toggle border radius */
+/* When TOC is open, remove bottom separator on toggle */
 .toc-toggle[aria-expanded="true"] {
-  border-radius: var(--radius) var(--radius) 0 0;
-  border-bottom-color: transparent;
+  border-bottom: none;
 }
 
 @media (max-width: 768px) {
   .toc {
     padding: 0 1.25rem;
   }
+  .toc-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.35rem 0 0.5rem;
+  }
   .toc-link {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+    padding: 0.5rem 0.85rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .toc-item-nested {
+    padding-left: 1rem;
   }
 }
 
