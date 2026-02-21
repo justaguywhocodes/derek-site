@@ -1,7 +1,13 @@
-import React from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { graphql, Link } from "gatsby"
 import Layout from "../components/Layout"
 import Seo from "../components/Seo"
+
+const slugify = (text) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
 
 const BlogPost = ({ data, children }) => {
   const post = data.mdx
@@ -9,8 +15,89 @@ const BlogPost = ({ data, children }) => {
   const wordCount = post.body ? post.body.split(/\s+/).length : 0
   const readTime = Math.max(1, Math.ceil(wordCount / 250))
 
+  const [progress, setProgress] = useState(0)
+  const [headings, setHeadings] = useState([])
+  const [activeId, setActiveId] = useState("")
+  const [tocOpen, setTocOpen] = useState(true)
+  const contentRef = useRef(null)
+
+  // Reading progress bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      if (docHeight > 0) {
+        setProgress(Math.min((scrollTop / docHeight) * 100, 100))
+      }
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Extract headings from rendered content
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+
+    const nodes = el.querySelectorAll("h2, h3")
+    const items = []
+    nodes.forEach((node) => {
+      const id = slugify(node.textContent)
+      node.id = id
+      items.push({
+        id,
+        text: node.textContent,
+        level: node.tagName === "H2" ? 2 : 3,
+      })
+    })
+    setHeadings(items)
+  }, [children])
+
+  // Active heading tracking via IntersectionObserver
+  useEffect(() => {
+    if (headings.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id)
+          }
+        })
+      },
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
+    )
+
+    headings.forEach(({ id }) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+
+    return () => observer.disconnect()
+  }, [headings])
+
+  const scrollToHeading = useCallback((e, id) => {
+    e.preventDefault()
+    const el = document.getElementById(id)
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY - 80
+      window.scrollTo({ top, behavior: "smooth" })
+    }
+  }, [])
+
   return (
     <Layout>
+      {/* Reading progress bar */}
+      <div
+        className="progress-bar"
+        style={{ width: `${progress}%` }}
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
+
       <div className="post-header">
         <div className="blog-card-tags" style={{ marginBottom: "1rem" }}>
           {tags &&
@@ -28,7 +115,41 @@ const BlogPost = ({ data, children }) => {
         </div>
       </div>
 
-      <div className="post-content">
+      {/* Table of Contents */}
+      {headings.length > 0 && (
+        <nav className="toc" aria-label="Table of contents">
+          <button
+            className="toc-toggle"
+            onClick={() => setTocOpen(!tocOpen)}
+            aria-expanded={tocOpen}
+          >
+            <span className="toc-toggle-label">
+              <span className="toc-toggle-icon">&#9776;</span>
+              Table of Contents
+            </span>
+            <span className={`toc-chevron${tocOpen ? " toc-chevron-open" : ""}`}>
+              &#8250;
+            </span>
+          </button>
+          {tocOpen && (
+            <ul className="toc-list">
+              {headings.map(({ id, text, level }) => (
+                <li key={id} className={`toc-item${level === 3 ? " toc-item-nested" : ""}`}>
+                  <a
+                    href={`#${id}`}
+                    className={`toc-link${activeId === id ? " toc-link-active" : ""}`}
+                    onClick={(e) => scrollToHeading(e, id)}
+                  >
+                    {text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </nav>
+      )}
+
+      <div className="post-content" ref={contentRef}>
         {children}
       </div>
 

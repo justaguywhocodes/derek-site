@@ -1046,6 +1046,131 @@ img { max-width: 100%; display: block; }
 }
 
 /* ============================================
+   READING PROGRESS BAR
+   ============================================ */
+.progress-bar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  z-index: 99;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* ============================================
+   TABLE OF CONTENTS
+   ============================================ */
+.toc {
+  max-width: var(--content-width);
+  margin: 0 auto 2rem;
+  padding: 0 2rem;
+}
+
+.toc-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: all var(--transition);
+}
+.toc-toggle:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.toc-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toc-toggle-icon {
+  font-size: 0.9rem;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.toc-chevron {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+  transform: rotate(0deg);
+  line-height: 1;
+}
+.toc-chevron-open {
+  transform: rotate(90deg);
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.toc-item {
+  margin: 0;
+  padding: 0;
+}
+
+.toc-item-nested {
+  padding-left: 1.25rem;
+}
+
+.toc-link {
+  display: block;
+  padding: 0.4rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all 0.15s ease;
+  border-bottom: none;
+}
+.toc-link:hover {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-left-color: var(--accent);
+}
+.toc-link-active {
+  color: var(--accent);
+  font-weight: 600;
+  border-left-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+/* When TOC is open, adjust the toggle border radius */
+.toc-toggle[aria-expanded="true"] {
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .toc {
+    padding: 0 1.25rem;
+  }
+  .toc-link {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+  }
+}
+
+/* ============================================
    PGP KEY PAGE
    ============================================ */
 .pgp-fingerprint {
