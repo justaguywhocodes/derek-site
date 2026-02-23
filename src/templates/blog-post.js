@@ -62,6 +62,20 @@ const BlogPost = ({ data, children }) => {
     setHeadings(items)
   }, [children])
 
+  // Open all links in blog content in a new tab
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+
+    const links = el.querySelectorAll("a[href]")
+    links.forEach((link) => {
+      if (!link.getAttribute("href").startsWith("#")) {
+        link.setAttribute("target", "_blank")
+        link.setAttribute("rel", "noopener noreferrer")
+      }
+    })
+  }, [children])
+
   // Active heading tracking via IntersectionObserver
   useEffect(() => {
     if (headings.length === 0) return
