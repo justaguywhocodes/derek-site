@@ -1,0 +1,481 @@
+---
+title: "Weekly Vulnerability Roundup — February 27, 2026"
+slug: "weekly-vuln-roundup-2026-02-27"
+date: "2026-02-27"
+tags: ["security", "vulnerabilities", "zero-day", "detection"]
+---
+
+Three major vulnerability stories this week, each targeting a different part of the stack. A CVSS 10.0 Cisco SD-WAN zero-day that's been exploited since 2023, a pre-auth RCE in BeyondTrust that went from patch to mass exploitation in four days, and a Dell RecoverPoint for VMs zero-day exploited by a China-nexus espionage group since mid-2024. All three have active exploitation and warrant immediate attention.
+
+---
+
+## 1. CVE-2026-20127: Cisco Catalyst SD-WAN Authentication Bypass (CVSS 10.0)
+
+On February 25, Cisco disclosed [CVE-2026-20127](https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-sdwan-rpa-EHchtZk), an authentication bypass in Catalyst SD-WAN Controller (formerly vSmart) and Catalyst SD-WAN Manager (formerly vManage). Broken peering authentication lets an unauthenticated attacker log in as a high-privileged internal user.
+
+[Cisco Talos](https://blog.talosintelligence.com/uat-8616-sd-wan/) and the [ASD-ACSC](https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/exploitation-of-cisco-sd-wan-appliances) confirmed that a threat actor tracked as UAT-8616 has been exploiting this since at least 2023 — roughly three years of zero-day access to SD-WAN infrastructure in critical sectors. If you're running Cisco SD-WAN, the question isn't whether to patch; it's whether you've already been compromised.
+
+### Attack Chain
+
+UAT-8616 gained access via CVE-2026-20127, then used NETCONF on port 830 to add rogue peers to the SD-WAN fabric. They downgraded the software to a version vulnerable to CVE-2022-20775 (a privilege escalation in the SD-WAN CLI), escalated to root, then restored the original version. They also purged `/var/log`, command history, and connection records. Everything used native SD-WAN management features — no custom binaries dropped — which makes traditional IOC-based detection much less effective.
+
+### Detection and Threat Hunting
+
+Given UAT-8616's cleanup habits, detection is less about catching the exploit in real-time and more about hunting for artifacts they missed. Start by deploying Snort SIDs **65938** and **65958** from Talos, then work through these hunting areas.
+
+**Unauthorized Peering Events**
+
+Check `/var/log/auth.log` for `Accepted publickey for vmanage-admin` entries. Compare source IPs against your configured System IPs. Unknown IPs that authenticated = compromise.
+
+```bash
+# Hunt for unauthorized SSH access to vmanage-admin
+grep "Accepted publickey for vmanage-admin" /var/log/auth.log | \
+  awk '{print $11}' | sort -u
+# Compare output against known System IPs in your SD-WAN Manager
+```
+
+**Version Downgrade Artifacts**
+
+Look for unexpected reboot and version change events. Hunt for CVE-2022-20775 path traversal strings:
+
+```bash
+# Hunt for path traversal in auth/command logs (CVE-2022-20775 indicator)
+grep -rE '(/\.\./\.\./|/\\n&\.\./\\n&\.\./)' /var/log/
+```
+
+**Persistence**
+
+- Unexpected entries in `~/.ssh/authorized_keys` for `vmanage-admin` and `root`
+- Local user accounts you didn't create
+- Modified SD-WAN startup scripts
+- `PermitRootLogin` changes in SSH config
+
+**Log Tampering**
+
+Unusually small or missing log files are an indicator. Compare on-device logs against external syslog.
+
+```bash
+# Check for suspiciously small/empty log files
+find /var/log -name "*.log" -size 0 -o -name "*.log" -size -1k | \
+  xargs ls -la
+# Check for truncated bash history
+wc -l /root/.bash_history /home/*/.bash_history 2>/dev/null
+```
+
+**Sigma Rule — Unauthorized SD-WAN Peer Connection**
+
+```yaml
+title: Cisco SD-WAN Unauthorized Peer Connection (CVE-2026-20127)
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+status: experimental
+description: Detects potential unauthorized control-connection peering events on Cisco SD-WAN infrastructure
+references:
+    - https://blog.talosintelligence.com/uat-8616-sd-wan/
+    - https://www.cisa.gov/news-events/directives/ed-26-03-mitigate-vulnerabilities-cisco-sd-wan-systems
+logsource:
+    product: cisco
+    service: sdwan
+detection:
+    selection:
+        EventType: 'control_connection'
+        PeerType: 'vmanage'
+    filter_known:
+        SourceIP|cidr:
+            - '<YOUR_KNOWN_MANAGEMENT_CIDR>'
+    condition: selection and not filter_known
+level: critical
+tags:
+    - attack.initial_access
+    - attack.t1190
+    - cve.2026.20127
+```
+
+### Remediation
+
+Patch now — there are no workarounds for this one. [CISA Emergency Directive 26-03](https://www.cisa.gov/news-events/directives/ed-26-03-mitigate-vulnerabilities-cisco-sd-wan-systems) set today (February 27, 5:00 PM ET) as the federal deadline, requiring agencies to inventory all SD-WAN systems, collect forensic artifacts, and verify external log storage. Even outside that mandate, the same playbook applies. Cisco published a [hardening guide](https://sec.cloudapps.cisco.com/security/center/resources/Cisco-Catalyst-SD-WAN-HardeningGuide), and CISA and UK NCSC released a joint [hunt and hardening guide](https://www.cisa.gov/news-events/directives/supplemental-direction-ed-26-03-hunt-and-hardening-guidance-cisco-sd-wan-systems) with additional detection guidance.
+
+---
+
+## 2. CVE-2026-1731: BeyondTrust Remote Support & PRA Pre-Auth RCE (CVSS 9.9)
+
+On February 6, BeyondTrust disclosed [CVE-2026-1731](https://www.beyondtrust.com/trust-center/security-advisories/bt26-02), a pre-auth RCE in Remote Support (RS) and older Privileged Remote Access (PRA) products. Unauthenticated OS command execution via crafted client requests, no interaction required.
+
+Same WebSocket endpoint (`/nw`) that Silk Typhoon exploited in late 2024 (CVE-2024-12356) to breach the U.S. Treasury. This is a variant in a different code path, found by [Hacktron](https://www.rapid7.com/blog/post/etr-cve-2026-1731-critical-unauthenticated-remote-code-execution-rce-beyondtrust-remote-support-rs-privileged-remote-access-pra/) using AI-enabled variant analysis. Second critical pre-auth RCE in this endpoint in 14 months.
+
+### The Bug: Bash Arithmetic Evaluation Injection
+
+This bug class is worth understanding because it's easy to overlook in code review. The vulnerable component is `thin-scc-wrapper`, a Bash script handling WebSocket connections on `/nw`. It reads a `remoteVersion` value from the client and uses it in a numeric comparison.
+
+The problem is that Bash arithmetic contexts evaluate nested command substitutions. When the script runs `[[ "$localVersion" -lt "$remoteVersion" ]]` and you supply `a[$(whoami)]0`, Bash executes `whoami` before attempting the comparison. This is documented Bash behavior, but it becomes dangerous any time unsanitized user input reaches an arithmetic expression.
+
+Attack flow:
+
+1. WebSocket connection to `/nw` with protocol header `ingredi support desk customer thin`.
+2. Send four newline-delimited values. First value is `remoteVersion` containing a payload like `a[$(cmd)]0`.
+3. `thin-scc-wrapper` evaluates the value, Bash executes the injected command as the site user.
+
+The `/nw` endpoint is internet-exposed by design — it's how legitimate BeyondTrust clients connect — and WAFs typically don't inspect WebSocket frame content. The payload sits inside what looks like a version negotiation parameter, so it bypasses standard injection signatures.
+
+The discovery is notable. On January 30, [watchTowr published analysis](https://labs.watchtowr.com/someone-knows-bash-far-too-well-and-we-love-it-ivanti-epmm-pre-auth-rces-cve-2026-1281-cve-2026-1340/) of CVE-2026-1281 in Ivanti EPMM documenting the same Bash arithmetic evaluation bug class. One day later, Hacktron found CVE-2026-1731 in BeyondTrust using AI-assisted variant analysis across codebases.
+
+### Exploitation Timeline
+
+- **Feb 2**: SaaS customers patched.
+- **Feb 6**: Advisory published.
+- **Feb 10**: [Rapid7](https://attackerkb.com/topics/jNMBccstay/cve-2026-1731/rapid7-analysis) and [win3zz](https://github.com/win3zz/CVE-2026-1731) publish PoCs.
+- **Feb 11**: [GreyNoise detects recon](https://www.greynoise.io/blog/reconnaissance-beyondtrust-rce-cve-2026-1731). One IP accounts for 86% of probes, operating from a Frankfurt VPN.
+- **Feb 12**: Mass exploitation confirmed (watchTowr, Arctic Wolf). Automated Nuclei-based scanning observed.
+- **Feb 20**: CISA flags ransomware use in KEV update.
+
+Post-exploitation observed by [Unit 42](https://unit42.paloaltonetworks.com/beyondtrust-cve-2026-1731/): VShell (fileless, in-memory), SparkRAT (Go-based RAT), `aws.php` web shells, Apache config overwrites, SimpleHelp RMM for lateral movement, DNS-based C2. Over 16,400 exposed instances identified. Attackers also probing non-standard ports beyond 443.
+
+### Detection and Hunting
+
+The exploitation pattern is well-documented at this point thanks to work from Unit 42, GreyNoise, watchTowr, Arctic Wolf, and Darktrace. Here's a consolidated playbook.
+
+**Network-Level**
+
+Attackers hit `get_portal_info` first to extract `x-ns-company`, then open the WebSocket channel. Watch for:
+
+- WebSocket upgrades to `/nw` from unexpected IPs
+- Non-numeric characters in version parameters (shell metacharacters: `$`, `(`, `)`, `[`)
+- BeyondTrust connections on non-standard ports
+
+```text
+# Suricata rule — BeyondTrust WebSocket command injection attempt
+alert http any any -> any any ( \
+    msg:"ET EXPLOIT BeyondTrust CVE-2026-1731 WebSocket Command Injection Attempt"; \
+    flow:established,to_server; \
+    http.uri; content:"/nw"; \
+    http.header; content:"Upgrade"; content:"websocket"; \
+    http.header; content:"ingredi"; \
+    pcre:"/remoteVersion[^\n]*[\$\(\)\[\]\`\|;]/"; \
+    classtype:web-application-attack; \
+    sid:2026173101; rev:1; \
+    reference:cve,2026-1731; \
+)
+```
+
+**Host-Level**
+
+Hunt on BeyondTrust appliances for:
+
+- **Web shells**: New PHP files near the web root, under 2KB, with `eval()`. `aws.php` is a confirmed IOC.
+- **SparkRAT**: Bash spawning Go binaries.
+- **VShell**: Memory-mapped services with no disk artifacts.
+- **Apache config changes**: Modifications to hide activity.
+- **DNS C2**: Unusual outbound DNS from the appliance.
+
+**YARA Rules**
+
+```text
+rule BeyondTrust_WebShell_AWS {
+    meta:
+        description = "Detects web shells deployed via CVE-2026-1731 exploitation"
+        author = "Adapted from Unit 42 / community reporting"
+        date = "2026-02-27"
+        reference = "https://unit42.paloaltonetworks.com/beyondtrust-cve-2026-1731/"
+        severity = "critical"
+    strings:
+        $eval = "eval(" ascii
+        $aws = "aws.php" ascii
+        $b64 = "base64_decode" ascii
+        $shell = /(?:system|passthru|shell_exec|popen|proc_open)\s*\(/ ascii
+    condition:
+        filesize < 5KB and ($eval or $shell) and ($aws or $b64)
+}
+
+rule SparkRAT_Go_Binary {
+    meta:
+        description = "Detects SparkRAT Go-based RAT binary deployed post-exploitation"
+        date = "2026-02-27"
+        severity = "high"
+    strings:
+        $go_build = "Go build ID:" ascii
+        $spark1 = "SparkRAT" ascii nocase
+        $spark2 = "github.com/XZB-1248/Spark" ascii
+        $c2_func = "handleConnection" ascii
+        $ws = "websocket" ascii
+    condition:
+        uint16(0) == 0x5A4D or uint32(0) == 0x464C457F  // PE or ELF
+        and $go_build
+        and (($spark1 or $spark2) or ($c2_func and $ws))
+}
+```
+
+**Sigma Rule — Post-Exploitation Process Behavior**
+
+```yaml
+title: BeyondTrust Appliance Suspicious Process Execution (CVE-2026-1731)
+id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+status: experimental
+description: >
+    Detects suspicious process execution patterns on BeyondTrust appliances
+    consistent with CVE-2026-1731 post-exploitation activity
+references:
+    - https://unit42.paloaltonetworks.com/beyondtrust-cve-2026-1731/
+logsource:
+    category: process_creation
+    product: linux
+detection:
+    selection_parent:
+        ParentImage|endswith:
+            - '/thin-scc-wrapper'
+            - '/httpd'
+            - '/apache2'
+    selection_child:
+        Image|endswith:
+            - '/bash'
+            - '/sh'
+            - '/curl'
+            - '/wget'
+            - '/python'
+            - '/perl'
+    condition: selection_parent and selection_child
+level: critical
+tags:
+    - attack.execution
+    - attack.t1059.004
+    - attack.initial_access
+    - attack.t1190
+    - cve.2026.1731
+```
+
+**KQL — Microsoft Defender for Endpoint**
+
+```kql
+// Hunt for BeyondTrust exploitation — suspicious child processes from web server
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where InitiatingProcessFileName in~ ("httpd", "apache2", "thin-scc-wrapper")
+| where FileName in~ ("bash", "sh", "curl", "wget", "python", "python3", "perl")
+| project Timestamp, DeviceName, InitiatingProcessFileName,
+          FileName, ProcessCommandLine, AccountName
+| order by Timestamp desc
+```
+
+### Remediation
+
+Patch to RS 25.3.2+ or PRA 25.1.1+. Note that versions older than RS 21.3 or PRA 22.1 need a base version upgrade first, which can turn a quick patch into a more involved project — plan accordingly. If you were internet-exposed and unpatched as of February 9, open a Severity 1 ticket with BeyondTrust and assume compromise. CISA has confirmed ransomware use.
+
+More broadly, if BeyondTrust is internet-facing, consider restricting management interfaces to segmented networks or zero trust access gateways. Two pre-auth RCEs in the same endpoint in 14 months is a pattern worth responding to architecturally, not just with patches.
+
+---
+
+## 3. CVE-2026-22769: Dell RecoverPoint for VMs Zero-Day (CVSS 10.0)
+
+On February 17, Dell disclosed [CVE-2026-22769](https://www.dell.com/support/kbdoc/en-us/000426773/dsa-2026-079), a hardcoded credential vulnerability in RecoverPoint for Virtual Machines (RP4VMs), a backup and disaster recovery product for VMware environments. An unauthenticated remote attacker with knowledge of the credential can access the underlying OS and achieve root-level persistence. Versions prior to 6.0.3.1 HF1 are affected.
+
+The severity here comes from the research behind the disclosure. [Mandiant and GTIG](https://cloud.google.com/blog/topics/threat-intelligence/unc6201-exploiting-dell-recoverpoint-zero-day) discovered the vulnerability while investigating active compromises, and attributed exploitation to UNC6201, a suspected China-nexus espionage cluster with notable overlaps to UNC5221 (publicly linked to Silk Typhoon). Exploitation has been ongoing since at least mid-2024. CISA [added CVE-2026-22769 to KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) on February 18 with a three-day remediation deadline — the kind of accelerated timeline reserved for active, high-confidence exploitation.
+
+### The Vulnerability
+
+The root cause is a set of hardcoded default credentials for the `admin` user in the Apache Tomcat Manager configuration at `/home/kos/tomcat9/tomcat-users.xml` on RP4VM appliances. With these credentials, an attacker can authenticate to the Tomcat Manager, upload a malicious WAR file via the `/manager/text/deploy` endpoint, and execute commands as root.
+
+Dell RecoverPoint appliances are internal infrastructure that typically don't have EDR agents, making them attractive targets for long-dwell espionage. The attackers don't need a complex exploit chain — just knowledge of the hardcoded credential and network access to the appliance.
+
+### Attack Chain and TTPs
+
+Mandiant's investigation revealed a methodical operation. After gaining access via CVE-2026-22769, UNC6201 deployed SLAYSTYLE (a JSP web shell) through the Tomcat Manager, then established persistence with the BRICKSTORM backdoor. In September 2025, they replaced BRICKSTORM with GRIMBOLT, a newer C# backdoor compiled using native ahead-of-time (AOT) compilation and packed with UPX. Native AOT eliminates the intermediate language metadata that analysts typically use to reverse engineer .NET binaries, making static analysis harder while improving performance on resource-constrained appliances.
+
+Persistence was established by modifying a legitimate shell script (`convert_hosts.sh`) that runs at boot via `rc.local` to include the path to the backdoor.
+
+Beyond the Dell appliances, UNC6201 pivoted into VMware virtual infrastructure using two novel techniques:
+
+**Ghost NICs**: The actor created temporary virtual network interfaces on existing VMs running on ESXi servers. Using these interfaces, they pivoted into internal and SaaS environments, then deleted the NICs to cover their tracks. The pivot infrastructure is ephemeral by design — a creative anti-forensics approach.
+
+**iptables Single Packet Authorization (SPA)**: On compromised vCenter appliances, UNC6201 configured iptables rules to monitor port 443 for a specific hex string trigger. When a matching packet arrived, the source IP was added to an approved list, and subsequent connections were silently redirected to a backdoor port (10443) for five minutes. This is covert C2 activation — the backdoor port is only reachable after sending the correct knock.
+
+```bash
+# Reconstructed iptables SPA rules observed by Mandiant
+iptables -I INPUT -i eth0 -p tcp --dport 443 -m string --hex-string <HEX_STRING>
+iptables -A port_filter -i eth0 -p tcp --dport 10443 --syn -m recent --rcheck --name ipt -j ACCEPT
+iptables -t nat -N IPT
+iptables -t nat -A IPT -p tcp -j REDIRECT --to-ports 10443
+iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 443 --syn -m recent --rcheck --name ipt --seconds 300 -j IPT
+```
+
+### Detection and Hunting
+
+Mandiant and GTIG published detailed forensic guidance and YARA rules. Here's a consolidated playbook.
+
+**Forensic Artifacts on Dell RecoverPoint**
+
+Key locations to examine on RP4VM appliances:
+
+- **Tomcat Manager logs**: `/home/kos/auditlog/fapi_cl_audit_log.log` — any requests to `/manager` are suspicious. Look specifically for `PUT /manager/text/deploy?path=/<PATH>&update=true` entries indicating WAR deployment.
+- **Uploaded WAR files**: `/var/lib/tomcat9`
+- **Compiled WAR artifacts**: `/var/cache/tomcat9/Catalina`
+- **Tomcat application logs**: `/var/log/tomcat9/` — check Catalina logs for `deployWAR` events, Localhost logs for exceptions from malicious WAR files.
+- **Persistence script**: Check `/home/kos/kbox/src/installation/distribution/convert_hosts.sh` for modifications not made by your team.
+- **Hardcoded credentials**: If the default `admin` credentials are still in `/home/kos/tomcat9/tomcat-users.xml`, assume they've been used.
+
+```bash
+# Quick triage checks for Dell RecoverPoint compromise
+# Check Tomcat Manager logs for deployment activity
+grep -i "/manager" /home/kos/auditlog/fapi_cl_audit_log.log
+# Check for unexpected WAR files
+ls -la /var/lib/tomcat9/*.war 2>/dev/null
+# Check persistence script for modifications
+cat /home/kos/kbox/src/installation/distribution/convert_hosts.sh | grep -v "^#"
+# Check for GRIMBOLT/BRICKSTORM binaries
+find / -name "support" -o -name "splisten" 2>/dev/null | xargs file
+```
+
+**YARA Rules (from Mandiant/GTIG)**
+
+```text
+rule G_APT_BackdoorToehold_GRIMBOLT_1
+{
+    meta:
+        author = "Google Threat Intelligence Group (GTIG)"
+        description = "Detects GRIMBOLT backdoor deployed by UNC6201"
+        reference = "https://cloud.google.com/blog/topics/threat-intelligence/unc6201-exploiting-dell-recoverpoint-zero-day"
+    strings:
+        $s1 = { 40 00 00 00 41 18 00 00 00 4B 21 20 C2 2C 08 23 02 }
+        $s2 = { B3 C3 BB 41 0D ?? ?? ?? 00 81 02 0C ?? ?? ?? 00 }
+        $s3 = { 39 08 01 49 30 A0 52 30 00 00 00 DB 40 09 00 02 00 80 65 BC 98 }
+        $s4 = { 2F 00 72 00 6F 00 75 00 74 00 65 79 23 E8 03 0E 00 00 00 2F 00 70 00 72 00 6F 00 63 00 2F 00 73 00 65 00 6C 00 66 00 2F 00 65 00 78 00 65 }
+    condition:
+        (uint32(0) == 0x464c457f) and all of ($s*)
+}
+
+rule G_Hunting_BackdoorToehold_GRIMBOLT_1
+{
+    meta:
+        author = "Google Threat Intelligence Group (GTIG)"
+        description = "Hunting rule for GRIMBOLT backdoor strings"
+    strings:
+        $s1 = "[!] Error : Plexor is nul" ascii wide
+        $s2 = "port must within 0~6553" ascii wide
+        $s3 = "[*] Disposing.." ascii wide
+        $s4 = "[!] Connection error. Kill Pty" ascii wide
+        $s5 = "[!] Unkown message type" ascii wide
+        $s6 = "[!] Bad dat" ascii wide
+    condition:
+        (uint16(0) == 0x5a4d or uint32(0) == 0x464c457f) and any of them
+}
+
+rule G_APT_BackdoorWebshell_SLAYSTYLE_4
+{
+    meta:
+        author = "Google Threat Intelligence Group (GTIG)"
+        description = "Detects SLAYSTYLE JSP web shell"
+    strings:
+        $str1 = "<%@page import=\"java.io" ascii wide
+        $str2 = "Base64.getDecoder().decode(c.substring(1)" ascii wide
+        $str3 = "{\"/bin/sh\",\"-c\"" ascii wide
+        $str4 = "Runtime.getRuntime().exec(" ascii wide
+        $str5 = "ByteArrayOutputStream();" ascii wide
+        $str6 = ".printStackTrace(" ascii wide
+    condition:
+        $str1 at 0 and all of them
+}
+```
+
+**Sigma Rule — WAR Deployment to Tomcat Manager**
+
+```yaml
+title: Dell RecoverPoint Suspicious WAR Deployment via Tomcat Manager (CVE-2026-22769)
+id: d4e5f6a7-b8c9-0123-defg-234567890123
+status: experimental
+description: >
+    Detects WAR file deployments to Tomcat Manager on Dell RecoverPoint appliances,
+    indicating potential exploitation of CVE-2026-22769
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/unc6201-exploiting-dell-recoverpoint-zero-day
+    - https://www.dell.com/support/kbdoc/en-us/000426773/dsa-2026-079
+logsource:
+    category: webserver
+    product: tomcat
+detection:
+    selection:
+        cs-uri-stem|contains: '/manager/text/deploy'
+        cs-method: 'PUT'
+    condition: selection
+level: critical
+tags:
+    - attack.persistence
+    - attack.t1505.003
+    - attack.initial_access
+    - attack.t1190
+    - cve.2026.22769
+```
+
+**KQL — Hunt for RP4VM Compromise Indicators**
+
+```kql
+// Detect Dell RecoverPoint exploitation artifacts
+DeviceProcessEvents
+| where Timestamp > ago(90d)
+| where (
+    ProcessCommandLine has "/manager/text/deploy"
+    or ProcessCommandLine has "convert_hosts.sh"
+    or ProcessCommandLine has "tomcat-users.xml"
+    or FileName in~ ("splisten", "support")
+    )
+| project Timestamp, DeviceName, FileName, ProcessCommandLine, AccountName
+| order by Timestamp desc
+```
+
+**Network IOCs**
+
+| Family | Indicator | Type |
+|--------|-----------|------|
+| GRIMBOLT | `wss://149.248.11.71/rest/apisession` | C2 Endpoint |
+| GRIMBOLT | `149.248.11.71` | C2 IP |
+
+Additional IOCs and file hashes are available in [Mandiant's GTI Collection](https://www.virustotal.com/gui/collection/6d9bd98653d426b223007bbafb06ba4b83f83df8de01ee1463a8d60fb2be5107/summary).
+
+### Remediation
+
+Upgrade to RP4VM 6.0.3.1 HF1 or apply Dell's [remediation script](https://www.dell.com/support/kbdoc/en-us/000426742/recoverpoint-for-vms-apply-the-remediation-script-for-dsa). For 5.3 SP4 P1, you'll need to migrate to 6.0 SP3 first. The script is non-disruptive and doesn't require a reboot.
+
+Given that exploitation has been active since mid-2024, patching alone isn't sufficient. If your RP4VM appliances were running a vulnerable version at any point, examine them for the artifacts described above. These are systems that typically don't support EDR — which is exactly why threat actors target them. Compromise can persist for months or years without detection.
+
+Dell recommends deploying RP4VM within trusted, access-controlled internal networks with appropriate firewall segmentation. If your internal segmentation is flat, an attacker with any foothold can reach these appliances.
+
+---
+
+## References
+
+### CVE-2026-20127 — Cisco SD-WAN
+
+- **Cisco Advisory**: [cisco-sa-sdwan-rpa-EHchtZk](https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-sdwan-rpa-EHchtZk)
+- **Cisco Talos — UAT-8616**: [Active exploitation of Cisco Catalyst SD-WAN](https://blog.talosintelligence.com/uat-8616-sd-wan/)
+- **CISA ED 26-03**: [Mitigate Vulnerabilities in Cisco SD-WAN Systems](https://www.cisa.gov/news-events/directives/ed-26-03-mitigate-vulnerabilities-cisco-sd-wan-systems)
+- **CISA Hunt & Hardening Guide**: [Supplemental Direction ED 26-03](https://www.cisa.gov/news-events/directives/supplemental-direction-ed-26-03-hunt-and-hardening-guidance-cisco-sd-wan-systems)
+- **ASD-ACSC**: [Exploitation of Cisco SD-WAN Appliances](https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/exploitation-of-cisco-sd-wan-appliances)
+- **CCCS**: [AL26-004](https://www.cyber.gc.ca/en/alerts-advisories/al26-004-critical-vulnerability-affecting-cisco-catalyst-sd-wan-cve-2026-20127)
+- **Cisco Hardening Guide**: [SD-WAN Hardening Guide](https://sec.cloudapps.cisco.com/security/center/resources/Cisco-Catalyst-SD-WAN-HardeningGuide)
+- **Tenable**: [CVE-2026-20127 Zero-Day Auth Bypass](https://www.tenable.com/blog/cve-2026-20127-cisco-catalyst-sd-wan-controllermanager-zero-day-authentication-bypass)
+- **SOC Prime**: [CVE-2026-20127 Detection Content](https://socprime.com/blog/cve-2026-20127-vulnerability/)
+- **NVD**: [CVE-2026-20127](https://nvd.nist.gov/vuln/detail/CVE-2026-20127)
+
+### CVE-2026-1731 — BeyondTrust RS / PRA
+
+- **BeyondTrust BT26-02**: [Advisory](https://www.beyondtrust.com/trust-center/security-advisories/bt26-02)
+- **Unit 42**: [VShell and SparkRAT in CVE-2026-1731 Exploitation](https://unit42.paloaltonetworks.com/beyondtrust-cve-2026-1731/)
+- **Rapid7**: [CVE-2026-1731 Technical Analysis](https://www.rapid7.com/blog/post/etr-cve-2026-1731-critical-unauthenticated-remote-code-execution-rce-beyondtrust-remote-support-rs-privileged-remote-access-pra/)
+- **AttackerKB**: [CVE-2026-1731 Deep Dive](https://attackerkb.com/topics/jNMBccstay/cve-2026-1731/rapid7-analysis)
+- **GreyNoise**: [Reconnaissance for CVE-2026-1731](https://www.greynoise.io/blog/reconnaissance-beyondtrust-rce-cve-2026-1731)
+- **Orca Security**: [CVE-2026-1731 Writeup](https://orca.security/resources/blog/cve-2026-1731-beyondtrust-vulnerability/)
+- **win3zz PoC**: [GitHub](https://github.com/win3zz/CVE-2026-1731)
+- **watchTowr Labs (precursor)**: [Ivanti EPMM Bash Arithmetic Analysis](https://labs.watchtowr.com/someone-knows-bash-far-too-well-and-we-love-it-ivanti-epmm-pre-auth-rces-cve-2026-1281-cve-2026-1340/)
+- **Help Net Security**: [Disclosure](https://www.helpnetsecurity.com/2026/02/09/beyondtrust-remote-access-vulnerability-cve-2026-1731/) · [Exploitation](https://www.helpnetsecurity.com/2026/02/13/beyondtrust-cve-2026-1731-poc-exploit-activity/)
+- **SecPod**: [Kill Chain Mapping](https://www.secpod.com/blog/weaponizing-cve-2026-1731-vshell-and-sparkrat-in-real-world-beyondtrust-breaches/)
+- **NVD**: [CVE-2026-1731](https://nvd.nist.gov/vuln/detail/CVE-2026-1731)
+
+### CVE-2026-22769 — Dell RecoverPoint for VMs
+
+- **Dell Advisory DSA-2026-079**: [Security Update](https://www.dell.com/support/kbdoc/en-us/000426773/dsa-2026-079)
+- **Dell Remediation Script**: [Apply Remediation for DSA-2026-079](https://www.dell.com/support/kbdoc/en-us/000426742/recoverpoint-for-vms-apply-the-remediation-script-for-dsa)
+- **Mandiant / GTIG**: [UNC6201 Exploiting Dell RecoverPoint Zero-Day](https://cloud.google.com/blog/topics/threat-intelligence/unc6201-exploiting-dell-recoverpoint-zero-day)
+- **The Hacker News**: [Dell RecoverPoint Zero-Day Exploited Since Mid-2024](https://thehackernews.com/2026/02/dell-recoverpoint-for-vms-zero-day-cve.html)
+- **Help Net Security**: [China-linked hackers exploited Dell zero-day since 2024](https://www.helpnetsecurity.com/2026/02/18/exploited-dell-zero-day-cve-2026-22769-brickstorm-grimbolt/)
+- **SecurityWeek**: [Dell RecoverPoint Zero-Day Exploited by Chinese Cyberespionage Group](https://www.securityweek.com/dell-recoverpoint-zero-day-exploited-by-chinese-cyberespionage-group/)
+- **Cybersecurity Dive**: [Hackers exploit zero-day flaw in Dell RecoverPoint](https://www.cybersecuritydive.com/news/zero-day-dell-recoverpoint-virtual-machines-exploited/812392/)
+- **SOC Prime**: [CVE-2026-22769 Detection Content](https://socprime.com/blog/cve-2026-22769-vulnerability/)
+- **eSentire**: [Dell RecoverPoint Vulnerability Exploited for Two Years](https://www.esentire.com/security-advisories/dell-recoverpoint-vulnerability-exploited-for-two-years-cve-2026-22769)
+- **Mandiant GTI IOC Collection**: [VirusTotal](https://www.virustotal.com/gui/collection/6d9bd98653d426b223007bbafb06ba4b83f83df8de01ee1463a8d60fb2be5107/summary)
+- **NVD**: [CVE-2026-22769](https://nvd.nist.gov/vuln/detail/CVE-2026-22769)
